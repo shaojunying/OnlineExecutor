@@ -13,6 +13,8 @@ public class MyClassLoader extends ClassLoader {
 
     public MyClassLoader() {
         // 使用当前线程的类加载器作为父类加载器
+        // 使用MyClassLoader加载待执行的类之后，还需要使用AppClassLoader加载HackSystem，
+        // 所以需要将MyClassLoader的parent指定为AppClassLoader
         super(Thread.currentThread().getContextClassLoader());
     }
 
