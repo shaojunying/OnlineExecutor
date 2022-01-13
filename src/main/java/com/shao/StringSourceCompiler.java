@@ -23,16 +23,20 @@ public class StringSourceCompiler {
      * @param source 要编译的Java代码
      * @return 生成的字节码
      */
-    public byte[] compile(String source) {
+    public byte[] compile(String source, DiagnosticCollector<JavaFileObject> compileCollector) {
 
         String className = extractClassName(source);
+
+        if (className.length() == 0) {
+            throw new IllegalArgumentException("source code must contain class definition");
+        }
 
         JavaFileObject javaFileObject = new JavaSourceFromString(className, source);
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         ClassFileManager classFileManager = new ClassFileManager(compiler.getStandardFileManager(null, null, null));
         List<JavaFileObject> compilationUnits = Collections.singletonList(javaFileObject);
 
-        compiler.getTask(null, classFileManager, null, null, null, compilationUnits)
+        compiler.getTask(null, classFileManager, compileCollector, null, null, compilationUnits)
                 .call();
 
         return classFileManager.getBytes();
@@ -43,6 +47,9 @@ public class StringSourceCompiler {
      */
     private String extractClassName(String source) {
         int start = source.indexOf("class ");
+        if (start == -1) {
+            return "";
+        }
         int end = source.indexOf(" ", start + 6);
         return source.substring(start + 6, end);
     }

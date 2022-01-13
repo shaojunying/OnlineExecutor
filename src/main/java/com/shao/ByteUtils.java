@@ -1,6 +1,5 @@
 package com.shao;
 
-import org.jetbrains.annotations.NotNull;
 
 /**
  *
@@ -21,7 +20,7 @@ public class ByteUtils {
         return num;
     }
 
-    public static byte @NotNull [] int2Bytes(int value, int len) {
+    public static byte [] int2Bytes(int value, int len) {
         byte[] bytes = new byte[len];
         for (int i = 0; i < bytes.length; i++) {
             bytes[len - 1 - i] = (byte) ((value >> 8 * i) & 0xff);

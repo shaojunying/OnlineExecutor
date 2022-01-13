@@ -3,9 +3,7 @@ package com.shao;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import javax.tools.JavaCompiler;
-import javax.tools.StandardJavaFileManager;
-import javax.tools.ToolProvider;
+import javax.tools.*;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -24,7 +22,8 @@ class StringSourceCompilerTest {
                 "   }" +
                 "}";
         StringSourceCompiler compiler = new StringSourceCompiler();
-        byte[] bytes = compiler.compile(classContent);
+        DiagnosticCollector<JavaFileObject> compileCollector = new DiagnosticCollector<>();
+        byte[] bytes = compiler.compile(classContent, compileCollector);
         assertNotNull(bytes);
 
         MyClassLoader myClassLoader = new MyClassLoader();
@@ -35,6 +34,35 @@ class StringSourceCompilerTest {
         Method method = new Method[]{clazz.getDeclaredMethod("main", String[].class)}[0];
         method.invoke(null, new Object[]{new String[]{}});
 
+    }
+
+    @Test
+    void compileWhenNoClassDefined() {
+        String classContent =
+                "public static void main(String[] args) { " +
+                "    System.out.println(\"Hello World!!!hhh\"); " +
+                "}";
+        StringSourceCompiler compiler = new StringSourceCompiler();
+        DiagnosticCollector<JavaFileObject> compileCollector = new DiagnosticCollector<>();
+        assertThrowsExactly(IllegalArgumentException.class, () -> {
+            compiler.compile(classContent, compileCollector);
+        });
+    }
+
+    @Test
+    void compileWithCompileError() {
+        String classContent =
+                "public class Test { " +
+                "   public static void main(String[] args) { " +
+                "       List<Integer> list = Arrays.asList(1, 2, 3);" +
+                "       System.out.println(\"Hello World!!!hhh\"); " +
+                "   }" +
+                "}";
+        StringSourceCompiler compiler = new StringSourceCompiler();
+        DiagnosticCollector<JavaFileObject> compileCollector = new DiagnosticCollector<>();
+        byte[] bytes = compiler.compile(classContent, compileCollector);
+        assertNull(bytes);
+        assertNotNull(compileCollector.getDiagnostics());
     }
 
     @Test
