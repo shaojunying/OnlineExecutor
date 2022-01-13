@@ -1,4 +1,4 @@
-package com.shao;
+package com.shao.execute;
 
 import java.io.*;
 import java.nio.channels.Channel;
@@ -120,9 +120,6 @@ public final class HackSystem {
         System.runFinalization();
     }
 
-    public static void runFinalizersOnExit(boolean value) {
-        System.runFinalizersOnExit(value);
-    }
 
     public static void load(String filename) {
         System.load(filename);

@@ -1,4 +1,4 @@
-package com.shao;
+package com.shao.compile;
 
 import javax.tools.*;
 import java.io.ByteArrayOutputStream;

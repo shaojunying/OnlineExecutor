@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Online Executor</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container" style="text-align:center; font-size: 18px; margin: 20px 70px 70px;">
+    <div class="form">
+        <form action="/run" method="post">
+            <div style="margin: 10px auto">
+                <textarea id="code" name="code" style="width: 100%;" rows="16"
+                          placeholder="The Code to be executed!" th:text="*{code}"></textarea>
+            </div>
+            <input class="btn btn-primary" type="submit" value="Run"/>
+        </form>
+    </div>
+
+    <!-- IF CUSTOMER IS ANONYMOUS -->
+    <div class="output" style="margin-top: 10px">
+        <textarea style="width: 100%;" readonly th:text="*{output}" rows="8"></textarea>
+    </div>
+</div>
+<script href="https://unpkg.com/codeflask/build/codeflask.min.js"></script>
+<script>
+    document.getElementById('code').addEventListener('keydown', function(e) {
+        if (e.key == 'Tab') {
+            e.preventDefault();
+            var start = this.selectionStart;
+            var end = this.selectionEnd;
+
+            // set textarea value to: text before caret + tab + text after caret
+            this.value = this.value.substring(0, start) +
+                "\t" + this.value.substring(end);
+
+            // put caret at right position again
+            this.selectionStart =
+                this.selectionEnd = start + 1;
+        }
+    });
+</script>
+
+
+</body>
+</html>

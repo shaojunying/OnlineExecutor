@@ -1,5 +1,9 @@
 package com.shao;
 
+import com.shao.execute.ClassModifier;
+import com.shao.execute.HackSystem;
+import com.shao.execute.MyClassLoader;
+
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -32,7 +36,7 @@ public class Main {
 
         // 替换java/lang/System为自定义的com/shao/HackSystem
         ClassModifier classModifier = new ClassModifier(fileContent);
-        byte[] bytes = classModifier.modifyUTF8Constant("java/lang/System", "com/shao/HackSystem");
+        byte[] bytes = classModifier.modifyUTF8Constant("java/lang/System", "com/shao/execute/HackSystem");
 
         Class<?> clazz = myClassLoader.loadByte(bytes);
         // 调用类中的方法

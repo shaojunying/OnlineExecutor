@@ -1,5 +1,6 @@
-package com.shao;
+package com.shao.compile;
 
+import com.shao.execute.MyClassLoader;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 

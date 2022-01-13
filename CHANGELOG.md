@@ -1,3 +1,7 @@
+## 0.7
+
+- feat: 使用Spring Boot、SpringMVC搭建网站
+
 ## 0.6
 
 - feat: 添加了收集编译错误信息的功能

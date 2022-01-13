@@ -1,8 +1,7 @@
-package com.shao;
+package com.shao.execute;
 
+import com.shao.execute.ClassModifier;
 import org.junit.jupiter.api.Test;
-
-import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.*;
 
