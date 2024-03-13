@@ -31,9 +31,11 @@ public class StringSourceCompiler {
             throw new IllegalArgumentException("source code must contain class definition");
         }
 
+        // 根据Class Name + Java 代码构造Java文件对象
         JavaFileObject javaFileObject = new JavaSourceFromString(className, source);
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         ClassFileManager classFileManager = new ClassFileManager(compiler.getStandardFileManager(null, null, null));
+        // 只需要编译一个Java文件
         List<JavaFileObject> compilationUnits = Collections.singletonList(javaFileObject);
 
         compiler.getTask(null, classFileManager, compileCollector, null, null, compilationUnits)
