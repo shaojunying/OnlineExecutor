@@ -4,43 +4,71 @@
     <meta charset="UTF-8">
     <title>Online Executor</title>
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/codeflask/build/codeflask.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .container {
+            margin-top: 20px;
+        }
+        .output textarea {
+            background-color: #f1f1f1;
+            color: #333;
+            resize: none;
+        }
+        textarea {
+            font-size: 14px;
+        }
+    </style>
 </head>
 <body>
-<div class="container" style="text-align:center; font-size: 18px; margin: 20px 70px 70px;">
-    <div class="form">
-        <form action="/run" method="post">
-            <div style="margin: 10px auto">
-                <textarea id="code" name="code" style="width: 100%;" rows="16"
-                          placeholder="The Code to be executed!" th:text="*{code}"></textarea>
+<div class="container">
+    <h1 class="text-center">Online Code Executor</h1>
+    <p class="text-center text-muted">Execute your code online with ease!</p>
+    <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-8">
+            <div class="form">
+                <form action="/run" method="post">
+                    <div class="form-group">
+                        <label for="code">Code to be executed:</label>
+                        <textarea id="code" name="code" class="form-control" rows="10"
+                                  placeholder="The Code to be executed!" th:text="*{code}"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Run</button>
+                </form>
             </div>
-            <input class="btn btn-primary" type="submit" value="Run"/>
-        </form>
-    </div>
-
-    <!-- IF CUSTOMER IS ANONYMOUS -->
-    <div class="output" style="margin-top: 10px">
-        <textarea style="width: 100%;" readonly th:text="*{output}" rows="8"></textarea>
+            <div class="output mt-3">
+                <label for="output">Output:</label>
+                <textarea id="output" class="form-control" readonly th:text="*{output}" rows="6"></textarea>
+            </div>
+        </div>
     </div>
 </div>
-<script href="https://unpkg.com/codeflask/build/codeflask.min.js"></script>
+<script src="https://unpkg.com/codeflask/build/codeflask.min.js"></script>
 <script>
+    var flask = new CodeFlask('#code', {
+        language: 'js',
+        lineNumbers: true
+    });
+
+    flask.onUpdate((code) => {
+        document.querySelector('textarea[name="code"]').value = code;
+    });
+
     document.getElementById('code').addEventListener('keydown', function(e) {
         if (e.key == 'Tab') {
             e.preventDefault();
             var start = this.selectionStart;
             var end = this.selectionEnd;
 
-            // set textarea value to: text before caret + tab + text after caret
             this.value = this.value.substring(0, start) +
                 "\t" + this.value.substring(end);
 
-            // put caret at right position again
             this.selectionStart =
                 this.selectionEnd = start + 1;
         }
     });
 </script>
-
-
 </body>
 </html>
