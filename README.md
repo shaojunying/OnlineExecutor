@@ -19,7 +19,9 @@
 
 ## 🖼️ 界面预览
 
-![OnlineExecutor截图](img/ScreenShot.png)
+![主界面](images/screen-1.png)
+
+![代码执行示例](images/screen-2.png)
 
 ## 🏗️ 技术架构
 
