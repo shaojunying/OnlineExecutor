@@ -1,74 +1,721 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>Online Executor</title>
-    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://unpkg.com/codeflask/build/codeflask.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 OnlineExecutor - Java代码在线执行器</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
     <style>
+        :root {
+            --primary-color: #4f46e5;
+            --primary-dark: #3730a3;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
+            --dark-bg: #1e293b;
+            --darker-bg: #0f172a;
+            --light-bg: #f8fafc;
+            --border-color: #e2e8f0;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            background-color: #f8f9fa;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
         }
+
+        .main-container {
+            min-height: 100vh;
+            padding: 2rem 0;
+        }
+
         .container {
-            margin-top: 20px;
+            max-width: 1400px;
         }
-        .output textarea {
-            background-color: #f1f1f1;
-            color: #333;
-            resize: none;
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            box-shadow: var(--shadow-xl);
+            overflow: hidden;
         }
-        textarea {
+
+        .header-section {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+            z-index: 0;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .header-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+
+        .content-section {
+            padding: 2rem;
+        }
+
+        .code-section {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .code-editor-container {
+            position: relative;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            background: var(--darker-bg);
+            box-shadow: var(--shadow-md);
+            transition: all 0.3s ease;
+        }
+
+        .code-editor-container:focus-within {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .code-editor-header {
+            background: linear-gradient(90deg, #2d3748 0%, #4a5568 100%);
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #4a5568;
+        }
+
+        .editor-title {
+            color: #e2e8f0;
+            font-size: 0.875rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .traffic-lights {
+            display: flex;
+            gap: 0.375rem;
+        }
+
+        .traffic-light {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .traffic-light.red { background: #ff5f56; }
+        .traffic-light.yellow { background: #ffbd2e; }
+        .traffic-light.green { background: #27ca3f; }
+
+        #code-editor {
+            min-height: 400px;
+            font-family: 'JetBrains Mono', 'Fira Code', Consolas, 'Courier New', monospace;
             font-size: 14px;
+            line-height: 1.6;
+            background: var(--darker-bg);
+            color: #e2e8f0;
+            border: none;
+            outline: none;
+            resize: vertical;
+            padding: 1rem;
+            width: 100%;
+            overflow-x: auto;
+            white-space: pre;
+            word-wrap: normal;
+            tab-size: 4;
+        }
+
+        .run-button {
+            background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%);
+            border: none;
+            color: white;
+            padding: 0.875rem 2rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            margin: 1.5rem 0;
+        }
+
+        .run-button:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        }
+
+        .run-button:active {
+            transform: translateY(0);
+        }
+
+        .run-button.loading {
+            opacity: 0.8;
+            cursor: not-allowed;
+        }
+
+        .output-section {
+            margin-top: 2rem;
+        }
+
+        .output-container {
+            position: relative;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            background: #f8fafc;
+            box-shadow: var(--shadow-md);
+        }
+
+        .output-header {
+            background: linear-gradient(90deg, #718096 0%, #4a5568 100%);
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .output-title {
+            color: white;
+            font-size: 0.875rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .clear-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .clear-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        #output {
+            min-height: 250px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            background: #f8fafc;
+            color: var(--text-primary);
+            border: none;
+            outline: none;
+            resize: vertical;
+            padding: 1rem;
+            width: 100%;
+            overflow-x: auto;
+            white-space: pre;
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .status-indicator.success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .status-indicator.error {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger-color);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .status-indicator.show {
+            opacity: 1;
+        }
+
+        .example-section {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: rgba(79, 70, 229, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(79, 70, 229, 0.1);
+        }
+
+        .example-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .example-buttons {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .example-btn {
+            background: white;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .example-btn:hover {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 1rem 0;
+            }
+
+            .content-section {
+                padding: 1.5rem;
+            }
+
+            .header-title {
+                font-size: 2rem;
+            }
+
+            .example-buttons {
+                flex-direction: column;
+            }
+
+            .example-btn {
+                text-align: center;
+            }
+        }
+
+        /* 加载动画 */
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-spinner {
+            animation: spin 1s linear infinite;
+        }
+
+        /* 滚动条样式 */
+        textarea::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        textarea::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        textarea::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+
+        textarea::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
         }
     </style>
 </head>
 <body>
-<div class="container">
-    <h1 class="text-center">Online Code Executor</h1>
-    <p class="text-center text-muted">Execute your code online with ease!</p>
-    <div class="row justify-content-center">
-        <div class="col-md-10 col-lg-8">
-            <div class="form">
-                <form action="/run" method="post">
-                    <div class="form-group">
-                        <label for="code">Code to be executed:</label>
-                        <textarea id="code" name="code" class="form-control" rows="10"
-                                  placeholder="The Code to be executed!" th:text="*{code}"></textarea>
+<div class="main-container">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-lg-11 col-xl-10 col-xxl-9">
+                <div class="glass-card">
+                    <!-- Header Section -->
+                    <div class="header-section">
+                        <div class="header-content">
+                            <h1 class="header-title">
+                                <i class="fas fa-rocket me-3"></i>OnlineExecutor
+                            </h1>
+                            <p class="header-subtitle">
+                                ☕ 基于JVM动态编译技术的在线Java代码执行器
+                            </p>
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-block">Run</button>
-                </form>
-            </div>
-            <div class="output mt-3">
-                <label for="output">Output:</label>
-                <textarea id="output" class="form-control" readonly th:text="*{output}" rows="6"></textarea>
+
+                    <!-- Content Section -->
+                    <div class="content-section">
+                        <form action="/run" method="post" id="code-form">
+                            <!-- Code Editor Section -->
+                            <div class="code-section">
+                                <h3 class="section-title">
+                                    <i class="fas fa-code text-primary"></i>
+                                    代码编辑器
+                                </h3>
+                                <div class="code-editor-container">
+                                    <div class="code-editor-header">
+                                        <div class="editor-title">
+                                            <i class="fab fa-java"></i>
+                                            Main.java
+                                        </div>
+                                        <div class="traffic-lights">
+                                            <div class="traffic-light red"></div>
+                                            <div class="traffic-light yellow"></div>
+                                            <div class="traffic-light green"></div>
+                                        </div>
+                                    </div>
+                                    <textarea id="code-editor" name="code" 
+                                              placeholder="// 在这里输入你的Java代码...&#10;public class Main {&#10;    public static void main(String[] args) {&#10;        System.out.println(&quot;Hello, OnlineExecutor!&quot;);&#10;    }&#10;}" 
+                                              th:text="*{code}"></textarea>
+                                </div>
+                            </div>
+
+                            <!-- Run Button -->
+                            <button type="submit" class="run-button" id="run-btn">
+                                <i class="fas fa-play"></i>
+                                <span class="btn-text">运行代码</span>
+                            </button>
+                        </form>
+
+                        <!-- Output Section -->
+                        <div class="output-section">
+                            <h3 class="section-title">
+                                <i class="fas fa-terminal text-success"></i>
+                                执行结果
+                            </h3>
+                            <div class="output-container">
+                                <div class="output-header">
+                                    <div class="output-title">
+                                        <i class="fas fa-laptop-code"></i>
+                                        控制台输出
+                                    </div>
+                                    <button type="button" class="clear-btn" onclick="clearOutput()">
+                                        <i class="fas fa-times"></i> 清空
+                                    </button>
+                                </div>
+                                <textarea id="output" readonly th:text="*{output}" 
+                                          placeholder="代码执行结果将在这里显示..."></textarea>
+                                <div class="status-indicator" id="status-indicator"></div>
+                            </div>
+                        </div>
+
+                        <!-- Example Section -->
+                        <div class="example-section">
+                            <h4 class="example-title">
+                                <i class="fas fa-lightbulb"></i>
+                                代码示例
+                            </h4>
+                            <div class="example-buttons">
+                                <button type="button" class="example-btn" onclick="loadExample('hello')">
+                                    👋 Hello World
+                                </button>
+                                <button type="button" class="example-btn" onclick="loadExample('fibonacci')">
+                                    🔢 斐波那契数列
+                                </button>
+                                <button type="button" class="example-btn" onclick="loadExample('sort')">
+                                    📊 数组排序
+                                </button>
+                                <button type="button" class="example-btn" onclick="loadExample('calculator')">
+                                    🧮 简单计算器
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="footer">
+                        <p>
+                            ❤️ 基于《深入理解Java虚拟机》实现 | 
+                            <a href="https://github.com/shaojunying/OnlineExecutor" target="_blank">
+                                <i class="fab fa-github"></i> GitHub
+                            </a>
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
-<script src="https://unpkg.com/codeflask/build/codeflask.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    var flask = new CodeFlask('#code', {
-        language: 'js',
-        lineNumbers: true
-    });
+    // 代码示例数据
+    const examples = {
+        hello: `public class Main {
+    public static void main(String[] args) {
+        System.out.println("Hello, OnlineExecutor!");
+        System.out.println("欢迎使用在线Java代码执行器！");
+    }
+}`,
+        fibonacci: `public class Main {
+    public static void main(String[] args) {
+        System.out.println("斐波那契数列前10项：");
+        for (int i = 0; i < 10; i++) {
+            System.out.print(fibonacci(i) + " ");
+        }
+        System.out.println();
+    }
+    
+    static int fibonacci(int n) {
+        if (n <= 1) return n;
+        return fibonacci(n - 1) + fibonacci(n - 2);
+    }
+}`,
+        sort: `import java.util.*;
 
-    flask.onUpdate((code) => {
-        document.querySelector('textarea[name="code"]').value = code;
-    });
+public class Main {
+    public static void main(String[] args) {
+        List<Integer> numbers = Arrays.asList(64, 34, 25, 12, 22, 11, 90);
+        System.out.println("排序前：" + numbers);
+        
+        Collections.sort(numbers);
+        System.out.println("排序后：" + numbers);
+        
+        // 冒泡排序演示
+        int[] arr = {64, 34, 25, 12, 22, 11, 90};
+        System.out.println("\\n冒泡排序过程：");
+        bubbleSort(arr);
+    }
+    
+    static void bubbleSort(int[] arr) {
+        int n = arr.length;
+        for (int i = 0; i < n - 1; i++) {
+            for (int j = 0; j < n - i - 1; j++) {
+                if (arr[j] > arr[j + 1]) {
+                    // 交换元素
+                    int temp = arr[j];
+                    arr[j] = arr[j + 1];
+                    arr[j + 1] = temp;
+                }
+            }
+            System.out.println("第" + (i + 1) + "轮：" + java.util.Arrays.toString(arr));
+        }
+    }
+}`,
+        calculator: `import java.util.Scanner;
 
-    document.getElementById('code').addEventListener('keydown', function(e) {
-        if (e.key == 'Tab') {
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("=== 简单计算器演示 ===");
+        
+        // 模拟用户输入
+        double num1 = 10.5;
+        double num2 = 3.2;
+        
+        System.out.println("数字1：" + num1);
+        System.out.println("数字2：" + num2);
+        System.out.println();
+        
+        System.out.println("加法：" + num1 + " + " + num2 + " = " + add(num1, num2));
+        System.out.println("减法：" + num1 + " - " + num2 + " = " + subtract(num1, num2));
+        System.out.println("乘法：" + num1 + " × " + num2 + " = " + multiply(num1, num2));
+        System.out.println("除法：" + num1 + " ÷ " + num2 + " = " + divide(num1, num2));
+    }
+    
+    static double add(double a, double b) { return a + b; }
+    static double subtract(double a, double b) { return a - b; }
+    static double multiply(double a, double b) { return a * b; }
+    static double divide(double a, double b) { 
+        return b != 0 ? a / b : Double.NaN; 
+    }
+}`
+    };
+
+    // 加载示例代码
+    function loadExample(type) {
+        const codeEditor = document.getElementById('code-editor');
+        const example = examples[type];
+        if (example) {
+            codeEditor.value = example;
+            // 添加视觉反馈
+            showStatus('已加载示例代码', 'success');
+        }
+    }
+
+    // 清空输出
+    function clearOutput() {
+        document.getElementById('output').value = '';
+        hideStatus();
+    }
+
+    // 显示状态指示器
+    function showStatus(message, type) {
+        const indicator = document.getElementById('status-indicator');
+        indicator.textContent = message;
+        indicator.className = 'status-indicator ' + type + ' show';
+        
+        // 3秒后自动隐藏
+        setTimeout(() => {
+            hideStatus();
+        }, 3000);
+    }
+
+    // 隐藏状态指示器
+    function hideStatus() {
+        const indicator = document.getElementById('status-indicator');
+        indicator.classList.remove('show');
+    }
+
+    // 代码编辑器Tab键支持
+    document.getElementById('code-editor').addEventListener('keydown', function(e) {
+        if (e.key === 'Tab') {
             e.preventDefault();
-            var start = this.selectionStart;
-            var end = this.selectionEnd;
-
-            this.value = this.value.substring(0, start) +
-                "\t" + this.value.substring(end);
-
-            this.selectionStart =
-                this.selectionEnd = start + 1;
+            const start = this.selectionStart;
+            const end = this.selectionEnd;
+            
+            // 插入Tab字符
+            this.value = this.value.substring(0, start) + 
+                        '    ' + this.value.substring(end); // 使用4个空格代替Tab
+            
+            // 重新设置光标位置
+            this.selectionStart = this.selectionEnd = start + 4;
         }
     });
+
+    // 表单提交增强
+    document.getElementById('code-form').addEventListener('submit', function(e) {
+        const runButton = document.getElementById('run-btn');
+        const buttonText = runButton.querySelector('.btn-text');
+        const buttonIcon = runButton.querySelector('i');
+        
+        // 显示加载状态
+        runButton.classList.add('loading');
+        runButton.disabled = true;
+        buttonText.textContent = '正在执行...';
+        buttonIcon.className = 'fas fa-spinner loading-spinner';
+        
+        // 清空之前的输出
+        document.getElementById('output').value = '';
+        showStatus('代码正在编译执行中...', 'info');
+    });
+
+    // 页面加载完成后的初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        // 如果输出区域有内容，显示成功状态
+        const output = document.getElementById('output');
+        if (output.value.trim()) {
+            showStatus('代码执行完成', 'success');
+        }
+        
+        // 默认加载Hello World示例（如果代码编辑器为空）
+        const codeEditor = document.getElementById('code-editor');
+        if (!codeEditor.value.trim()) {
+            loadExample('hello');
+        }
+    });
+
+    // 键盘快捷键支持
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+Enter 或 Cmd+Enter 运行代码
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('code-form').submit();
+        }
+        
+        // Ctrl+L 或 Cmd+L 清空输出
+        if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
+            e.preventDefault();
+            clearOutput();
+        }
+    });
+
+    // 添加提示信息
+    setTimeout(function() {
+        if (document.getElementById('output').value.trim() === '') {
+            showStatus('💡 提示：使用 Ctrl+Enter 快速运行代码', 'info');
+        }
+    }, 2000);
 </script>
 </body>
 </html>
