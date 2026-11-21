@@ -1,0 +1,340 @@
+:root {
+    --bg: #f4f5f7;
+    --panel: #ffffff;
+    --panel-header: #f9fafb;
+    --border: #e2e5ea;
+    --text: #1f2328;
+    --muted: #656d76;
+    --accent: #e76f00;
+    --accent-hover: #c95f00;
+    --ok: #1a7f37;
+    --error: #cf222e;
+    --warn: #9a6700;
+    --code-bg: #fbfbfc;
+    --mono: "JetBrains Mono", "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #0f1115;
+        --panel: #171a21;
+        --panel-header: #1c2029;
+        --border: #2a2f3a;
+        --text: #e6e8ec;
+        --muted: #9aa3b2;
+        --accent: #f08a24;
+        --accent-hover: #ff9d3d;
+        --ok: #3fb950;
+        --error: #f85149;
+        --warn: #d29922;
+        --code-bg: #212121;
+        color-scheme: dark;
+    }
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.5 var(--sans);
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+}
+
+/* ---- Top bar ---- */
+
+.topbar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 20px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+}
+
+.brand {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+}
+
+.brand h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 650;
+}
+
+.logo {
+    font-size: 20px;
+}
+
+.tagline {
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.runtime {
+    padding: 2px 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--muted);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.runtime.warn {
+    border-color: var(--warn);
+    color: var(--warn);
+}
+
+.github {
+    color: var(--muted);
+    text-decoration: none;
+}
+
+.github:hover {
+    color: var(--text);
+}
+
+/* ---- Layout ---- */
+
+.workspace {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(320px, 2fr);
+    gap: 16px;
+    padding: 16px 20px 20px;
+}
+
+.side {
+    display: grid;
+    grid-template-rows: minmax(110px, 1fr) minmax(0, 3fr);
+    gap: 16px;
+    min-height: 0;
+}
+
+.panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 44px;
+    padding: 6px 12px;
+    background: var(--panel-header);
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+}
+
+.panel-footer {
+    padding: 6px 12px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 12px;
+}
+
+kbd {
+    padding: 0 5px;
+    border: 1px solid var(--border);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    font: 11px var(--mono);
+}
+
+.file-name {
+    font-family: var(--mono);
+    font-weight: 500;
+}
+
+.toolbar, .meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ---- Controls ---- */
+
+select, .button {
+    height: 30px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--panel);
+    color: var(--text);
+    font: inherit;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.button.primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #fff;
+}
+
+.button.primary:hover:not(:disabled) {
+    background: var(--accent-hover);
+}
+
+.button:disabled {
+    opacity: 0.6;
+    cursor: progress;
+}
+
+.button.ghost {
+    height: 26px;
+    padding: 0 8px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.run-icon {
+    font-size: 11px;
+}
+
+/* ---- Editor ---- */
+
+.editor-panel .CodeMirror {
+    flex: 1;
+    height: auto;
+    min-height: 0;
+    font: 14px/1.6 var(--mono);
+}
+
+.CodeMirror .error-line {
+    background: color-mix(in srgb, var(--error) 18%, transparent);
+}
+
+#stdin {
+    flex: 1;
+    width: 100%;
+    padding: 10px 12px;
+    border: 0;
+    outline: none;
+    resize: none;
+    background: var(--code-bg);
+    color: var(--text);
+    font: 13px/1.5 var(--mono);
+}
+
+/* ---- Output ---- */
+
+.output {
+    flex: 1;
+    overflow: auto;
+    padding: 10px 12px;
+    background: var(--code-bg);
+    font: 13px/1.5 var(--mono);
+}
+
+.output pre {
+    margin: 0 0 8px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.output .stderr {
+    color: var(--error);
+}
+
+.output .note {
+    color: var(--muted);
+    font-family: var(--sans);
+}
+
+.placeholder {
+    margin: 0;
+    color: var(--muted);
+    font-family: var(--sans);
+}
+
+.compile-errors {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.compile-errors li {
+    margin-bottom: 6px;
+    padding: 6px 8px;
+    border-left: 3px solid var(--error);
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--error) 8%, transparent);
+    cursor: pointer;
+    white-space: pre-wrap;
+}
+
+.compile-errors .position {
+    color: var(--error);
+    font-weight: 600;
+}
+
+.status {
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.status.SUCCESS { background: var(--ok); }
+.status.COMPILE_ERROR, .status.RUNTIME_ERROR, .status.FAILED { background: var(--error); }
+.status.TIMEOUT, .status.OUTPUT_LIMIT_EXCEEDED { background: var(--warn); }
+
+.stat {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 400;
+}
+
+/* ---- Small screens ---- */
+
+@media (max-width: 860px) {
+    .workspace {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(360px, 60vh) auto;
+    }
+
+    .side {
+        grid-template-rows: 120px minmax(240px, auto);
+    }
+
+    .tagline {
+        display: none;
+    }
+}

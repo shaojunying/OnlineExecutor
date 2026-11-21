@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: online-executor
+
+server:
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+# All settings: io.github.shaojunying.onlineexecutor.config.ExecutorProperties
+executor:
+  # in-process | process | docker. Use docker for public deployments.
+  mode: process
+  timeout: 10s
+  max-source-length: 65536
+  max-stdin-length: 65536
+  max-output-bytes: 65536
+  max-concurrent: 4
+  heap-mb: 128
+  docker:
+    # Empty: eclipse-temurin:<server Java version>-jre
+    image: ""
+    memory-mb: 384
+    cpus: "1.0"
+    pids-limit: 128
