@@ -1,52 +1,60 @@
-package com.shao.controller;
+package io.github.shaojunying.onlineexecutor.web;
 
-import com.shao.execute.ClassModifier;
-import com.shao.execute.HackSystem;
-import com.shao.execute.MyClassLoader;
-import com.shao.compile.StringSourceCompiler;
-import com.shao.service.ExecutorService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import io.github.shaojunying.onlineexecutor.config.ExecutorProperties;
+import io.github.shaojunying.onlineexecutor.service.ExecutionResult;
+import io.github.shaojunying.onlineexecutor.service.ExecutionService;
 
 /**
- * @author shaojunying
+ * JSON API.
+ *
+ * <ul>
+ *   <li>{@code POST /api/executions}: compile and run a source file.</li>
+ *   <li>{@code GET /api/runtime}: the execution mode and limits, for the web page.</li>
+ * </ul>
+ * Compile errors and runtime errors are normal results (HTTP 200). HTTP 400 means the
+ * request is invalid, HTTP 429 means the server is busy.
  */
-@Controller
-public class ExecutorController {
+@RestController
+@RequestMapping(path = "/api", produces = MediaType.APPLICATION_JSON_VALUE)
+public class ExecutionController {
 
-    private final ExecutorService executorService;
+    private final ExecutionService executionService;
+    private final ExecutorProperties properties;
 
-    private static final String DEFAULT_CODE =
-            "public class Run {\n"
-            + "    public static void main(String[] args) {\n"
-            + "        System.out.println(111);\n"
-            + "    }\n"
-            + "}";
-
-    @Autowired
-    public ExecutorController(ExecutorService executorService) {
-        this.executorService = executorService;
+    public ExecutionController(ExecutionService executionService, ExecutorProperties properties) {
+        this.executionService = executionService;
+        this.properties = properties;
     }
 
-    @RequestMapping("executor")
-    public String page(Model model) {
-        model.addAttribute("code", DEFAULT_CODE);
-        return "executor";
+    @PostMapping(path = "/executions", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ExecutionResult execute(@RequestBody ExecutionRequest request) {
+        return executionService.execute(request.source(), request.stdin());
     }
 
-    @RequestMapping(value = "run")
-    public String run(@RequestParam String code, Model model) {
-        String output = executorService.executor(code);
-
-        model.addAttribute("code", code);
-        model.addAttribute("output", output);
-        return "executor";
+    @GetMapping("/runtime")
+    public RuntimeInfo runtime() {
+        return new RuntimeInfo(
+                properties.mode().name(),
+                Runtime.version().feature(),
+                properties.timeout().toMillis(),
+                properties.maxSourceLength(),
+                properties.maxOutputBytes());
     }
 
+    /**
+     * @param source  Java source code
+     * @param stdin   standard input for the program; optional
+     */
+    public record ExecutionRequest(String source, String stdin) {
+    }
+
+    public record RuntimeInfo(String mode, int javaVersion, long timeoutMillis, int maxSourceLength, int maxOutputBytes) {
+    }
 }

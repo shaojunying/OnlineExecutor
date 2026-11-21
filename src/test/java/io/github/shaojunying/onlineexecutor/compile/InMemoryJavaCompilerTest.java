@@ -1,81 +1,122 @@
-package com.shao.compile;
+package io.github.shaojunying.onlineexecutor.compile;
 
-import com.shao.execute.MyClassLoader;
-import org.junit.jupiter.api.Disabled;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.jupiter.api.Test;
 
-import javax.tools.*;
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+class InMemoryJavaCompilerTest {
 
-import static org.junit.jupiter.api.Assertions.*;
-
-class StringSourceCompilerTest {
+    private final InMemoryJavaCompiler compiler = new InMemoryJavaCompiler();
 
     @Test
-    void compile() throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
-        String classContent =
-                "public class Test { " +
-                "   public static void main(String[] args) { " +
-                "       System.out.println(\"Hello World!!!hhh\"); " +
-                "   }" +
-                "}";
-        StringSourceCompiler compiler = new StringSourceCompiler();
-        DiagnosticCollector<JavaFileObject> compileCollector = new DiagnosticCollector<>();
-        byte[] bytes = compiler.compile(classContent, compileCollector);
-        assertNotNull(bytes);
+    void compilesPublicClass() {
+        CompiledProgram program = compileOk("""
+                public class Test {
+                    public static void main(String[] args) {
+                        System.out.println("Hello");
+                    }
+                }
+                """);
 
-        MyClassLoader myClassLoader = new MyClassLoader();
+        assertThat(program.mainClassName()).isEqualTo("Test");
+        assertThat(program.classes()).containsOnlyKeys("Test");
+    }
 
-        // 加载bytes
-        Class<?> clazz = myClassLoader.loadByte(bytes);
-        // 调用类中的方法
-        Method method = new Method[]{clazz.getDeclaredMethod("main", String[].class)}[0];
-        method.invoke(null, new Object[]{new String[]{}});
+    /** The old code took everything up to the next space as the class name: "C{". */
+    @Test
+    void acceptsBraceDirectlyAfterClassName() {
+        CompiledProgram program = compileOk("public class C{ public static void main(String[] a) {} }");
 
+        assertThat(program.mainClassName()).isEqualTo("C");
     }
 
     @Test
-    void compileWhenNoClassDefined() {
-        String classContent =
-                "public static void main(String[] args) { " +
-                "    System.out.println(\"Hello World!!!hhh\"); " +
-                "}";
-        StringSourceCompiler compiler = new StringSourceCompiler();
-        DiagnosticCollector<JavaFileObject> compileCollector = new DiagnosticCollector<>();
-        assertThrowsExactly(IllegalArgumentException.class, () -> {
-            compiler.compile(classContent, compileCollector);
-        });
+    void ignoresClassKeywordInCommentsAndStrings() {
+        CompiledProgram program = compileOk("""
+                // This class prints a word.
+                public class Real {
+                    static String text = "a class of its own";
+                    public static void main(String[] args) {}
+                }
+                """);
+
+        assertThat(program.mainClassName()).isEqualTo("Real");
+    }
+
+    /** The old code kept only the last class file that javac wrote. */
+    @Test
+    void keepsNestedAndAnonymousClasses() {
+        CompiledProgram program = compileOk("""
+                public class Outer {
+                    static class Inner {}
+                    public static void main(String[] args) {
+                        Runnable r = new Runnable() { public void run() {} };
+                    }
+                }
+                """);
+
+        assertThat(program.classes()).containsOnlyKeys("Outer", "Outer$Inner", "Outer$1");
     }
 
     @Test
-    void compileWithCompileError() {
-        String classContent =
-                "public class Test { " +
-                "   public static void main(String[] args) { " +
-                "       List<Integer> list = Arrays.asList(1, 2, 3);" +
-                "       System.out.println(\"Hello World!!!hhh\"); " +
-                "   }" +
-                "}";
-        StringSourceCompiler compiler = new StringSourceCompiler();
-        DiagnosticCollector<JavaFileObject> compileCollector = new DiagnosticCollector<>();
-        byte[] bytes = compiler.compile(classContent, compileCollector);
-        assertNull(bytes);
-        assertNotNull(compileCollector.getDiagnostics());
+    void usesPackageInMainClassName() {
+        CompiledProgram program = compileOk("""
+                package demo.app;
+                public class App { public static void main(String[] args) {} }
+                """);
+
+        assertThat(program.mainClassName()).isEqualTo("demo.app.App");
+        assertThat(program.classes()).containsOnlyKeys("demo.app.App");
     }
 
     @Test
-    @Disabled
-    void testCompilerWithFileSource() throws IOException {
-        File file = new File("/Users/shaojunying/Java-Test/com/shao/Test.java");
+    void picksClassWithMainWhenNoClassIsPublic() {
+        CompiledProgram program = compileOk("""
+                class Helper {}
+                class Program { public static void main(String[] args) {} }
+                """);
 
-        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-        StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null);
-
-        compiler.getTask(null, fileManager, null, null, null, fileManager.getJavaFileObjects(file)).call();
-        fileManager.close();
+        assertThat(program.mainClassName()).isEqualTo("Program");
     }
 
+    @Test
+    void reportsCompileErrorsWithPosition() {
+        CompilationResult result = compiler.compile("""
+                public class Broken {
+                    public static void main(String[] args) {
+                        List<Integer> list = null;
+                    }
+                }
+                """);
+
+        assertThat(result).isInstanceOf(CompilationResult.Failure.class);
+        CompileError error = ((CompilationResult.Failure) result).errors().getFirst();
+        assertThat(error.line()).isEqualTo(3);
+        assertThat(error.column()).isEqualTo(9);
+        assertThat(error.message()).contains("cannot find symbol");
+    }
+
+    @Test
+    void reportsSourceWithoutClassAsCompileError() {
+        CompilationResult result = compiler.compile("System.out.println(1);");
+
+        assertThat(result).isInstanceOf(CompilationResult.Failure.class);
+    }
+
+    @Test
+    void doesNotExposeServerClassPath() {
+        CompilationResult result = compiler.compile("""
+                import org.springframework.boot.SpringApplication;
+                public class Peek { public static void main(String[] args) {} }
+                """);
+
+        assertThat(result).isInstanceOf(CompilationResult.Failure.class);
+        assertThat(((CompilationResult.Failure) result).errors().getFirst().message()).contains("does not exist");
+    }
+
+    private CompiledProgram compileOk(String source) {
+        CompilationResult result = compiler.compile(source);
+        assertThat(result).isInstanceOf(CompilationResult.Success.class);
+        return ((CompilationResult.Success) result).program();
+    }
 }

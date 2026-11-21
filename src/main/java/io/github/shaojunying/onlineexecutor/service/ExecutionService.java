@@ -1,51 +1,62 @@
-package com.shao.service;
+package io.github.shaojunying.onlineexecutor.service;
 
-import com.shao.compile.StringSourceCompiler;
-import com.shao.execute.JavaClassExecutor;
+import java.util.concurrent.Semaphore;
+
 import org.springframework.stereotype.Service;
 
-import javax.tools.Diagnostic;
-import javax.tools.DiagnosticCollector;
-import javax.tools.JavaFileObject;
+import io.github.shaojunying.onlineexecutor.compile.CompilationResult;
+import io.github.shaojunying.onlineexecutor.compile.InMemoryJavaCompiler;
+import io.github.shaojunying.onlineexecutor.config.ExecutorProperties;
+import io.github.shaojunying.onlineexecutor.runner.CodeRunner;
 
 /**
- * @author shaojunying
+ * Checks the request, compiles the source and runs it.
+ *
+ * <p>A semaphore limits how many requests compile or run at the same time.
+ * A request that finds no free slot fails at once with {@link ExecutorBusyException}.
  */
 @Service
-public class ExecutorService {
+public class ExecutionService {
 
-    private static final String NO_OUTPUT = "Nothing...";
+    private final InMemoryJavaCompiler compiler;
+    private final CodeRunner runner;
+    private final ExecutorProperties properties;
+    private final Semaphore slots;
 
-    public String executor(String source) {
-
-        // 首先编译代码
-        StringSourceCompiler compiler = new StringSourceCompiler();
-        DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
-        byte[] bytes;
-        try {
-            bytes = compiler.compile(source, diagnostics);
-        }catch (IllegalArgumentException e){
-            // 提取类名失败
-            return e.getMessage();
-        }
-        if (bytes == null) {
-            // 编译失败 返回错误信息
-            StringBuilder builder = new StringBuilder();
-            for (Diagnostic<? extends JavaFileObject> diagnostic : diagnostics.getDiagnostics()) {
-                builder.append(diagnostic.toString());
-                builder.append(System.lineSeparator());
-            }
-            return builder.toString();
-        }
-
-        // 执行代码
-        JavaClassExecutor executor = new JavaClassExecutor();
-        String output = executor.execute(bytes);
-
-        if (output == null || output.isEmpty()) {
-            return NO_OUTPUT;
-        }
-        return output;
+    public ExecutionService(InMemoryJavaCompiler compiler, CodeRunner runner, ExecutorProperties properties) {
+        this.compiler = compiler;
+        this.runner = runner;
+        this.properties = properties;
+        this.slots = new Semaphore(properties.maxConcurrent());
     }
 
+    public ExecutionResult execute(String source, String stdin) {
+        String input = stdin == null ? "" : stdin;
+        validate(source, input);
+        if (!slots.tryAcquire()) {
+            throw new ExecutorBusyException(properties.maxConcurrent());
+        }
+        try {
+            return switch (compiler.compile(source)) {
+                case CompilationResult.Failure failure -> ExecutionResult.compileError(failure.errors());
+                case CompilationResult.Success success -> ExecutionResult.of(runner.run(success.program(), input));
+            };
+        } finally {
+            slots.release();
+        }
+    }
+
+    private void validate(String source, String stdin) {
+        if (source == null || source.isBlank()) {
+            throw new InvalidSourceException("Source code is empty.");
+        }
+        if (source.length() > properties.maxSourceLength()) {
+            throw new InvalidSourceException("Source code is longer than "
+                    + properties.maxSourceLength() + " characters.");
+        }
+        if (stdin.length() > properties.maxStdinLength()) {
+            throw new InvalidSourceException("Standard input is longer than "
+                    + properties.maxStdinLength() + " characters.");
+        }
+    }
 }

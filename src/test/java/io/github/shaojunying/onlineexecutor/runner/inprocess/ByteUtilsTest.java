@@ -1,4 +1,4 @@
-package com.shao.execute;
+package io.github.shaojunying.onlineexecutor.runner.inprocess;
 
 import org.junit.jupiter.api.Test;
 
@@ -22,7 +22,7 @@ class ByteUtilsTest {
     @Test
     void bytes2String() {
         String originalStr = "北京邮电大学";
-        String str = ByteUtils.bytes2String(originalStr.getBytes(), 0, originalStr.getBytes().length);
+        String str = ByteUtils.bytes2String(originalStr.getBytes(java.nio.charset.StandardCharsets.UTF_8), 0, originalStr.getBytes(java.nio.charset.StandardCharsets.UTF_8).length);
         assertEquals(originalStr, str);
     }
 
@@ -30,7 +30,7 @@ class ByteUtilsTest {
     void string2Bytes() {
         String originalStr = "北京邮电大学";
         byte[] bytes = ByteUtils.string2Bytes(originalStr);
-        assertArrayEquals(originalStr.getBytes(), bytes);
+        assertArrayEquals(originalStr.getBytes(java.nio.charset.StandardCharsets.UTF_8), bytes);
     }
 
     @Test

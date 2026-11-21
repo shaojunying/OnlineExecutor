@@ -1,92 +1,126 @@
-package com.shao.execute;
+package io.github.shaojunying.onlineexecutor.runner.inprocess;
 
-import java.io.*;
+import java.io.Console;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.nio.channels.Channel;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Properties;
+import java.util.ResourceBundle;
+
+import io.github.shaojunying.onlineexecutor.runner.BoundedOutput;
 
 /**
- * 该方法用来将代码的输出从 标准输出流 重定向到一个 新的输出流 中。
+ * Replacement for {@link System} in user code that runs in the server JVM.
  *
- * 该方法将out和err重定向到了ByteArrayOutputStream对象中，
- * 并提供了两个方法获取和清理ByteArrayOutputStream对象中的内容，
- * 其余函数都是封装System的函数，内部直接调用System相应的方法。
- * @author shaojunying
+ * <p>{@link ClassModifier} rewrites every reference to {@code java/lang/System} in user
+ * class files to this class. This class must therefore declare every public static
+ * member of {@link System}; {@code HackSystemTest} checks this.
+ *
+ * <p>Behavior:
+ * <ul>
+ *   <li>{@code in}, {@code out} and {@code err} use the {@link ExecutionContext} of the
+ *       current thread, so concurrent runs stay separate.</li>
+ *   <li>{@code exit} stops the user code instead of the server.</li>
+ *   <li>Methods that change JVM-wide state ({@code setOut}, {@code setProperty},
+ *       {@code loadLibrary}, ...) throw {@link SecurityException}.</li>
+ *   <li>{@code getenv} returns nothing, so server secrets do not leak.</li>
+ * </ul>
+ * This is damage control, not a sandbox. Use process or docker mode for untrusted code.
  */
 public final class HackSystem {
 
-    /** Don't let anyone instantiate this class */
     private HackSystem() {
-
     }
 
-    public final static InputStream in = null;
+    public static final InputStream in = new RoutedInputStream();
 
-    public final static ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+    public static final PrintStream out = new PrintStream(new RoutedOutputStream(false), true, StandardCharsets.UTF_8);
 
-    public final static PrintStream out = new PrintStream(buffer);
+    public static final PrintStream err = new PrintStream(new RoutedOutputStream(true), true, StandardCharsets.UTF_8);
 
-    public final static PrintStream err = out;
+    private static final PrintStream SERVER_OUT = System.out;
+    private static final PrintStream SERVER_ERR = System.err;
 
-    private static volatile SecurityManager security = null;
+    // ---- Methods with changed behavior ----
 
-    /**
-     * 新定义的方法 获取buffer中的内容（out或err产生的）
-     */
-    public static String getBufferString() {
-        return buffer.toString();
+    public static void exit(int status) {
+        throw UserCodeStop.exit(status);
     }
 
-    public static void clearBuffer() {
-        buffer.reset();
-    }
-
-
-    /**
-     * 下面的方法都还是封装了System中的方法
-     * @param in
-     */
     public static void setIn(InputStream in) {
-        System.setIn(in);
+        throw denied("setIn");
     }
 
     public static void setOut(PrintStream out) {
-        System.setOut(out);
+        throw denied("setOut");
     }
 
     public static void setErr(PrintStream err) {
-        System.setErr(err);
+        throw denied("setErr");
     }
 
-    private static volatile Console cons = null;
-
-    public static Console console() {
-        return System.console();
-    }
-
+    @Deprecated
     public static void setSecurityManager(SecurityManager s) {
-        System.setSecurityManager(s);
+        throw new UnsupportedOperationException("The Security Manager is not supported");
     }
 
+    @Deprecated
     public static SecurityManager getSecurityManager() {
-        return System.getSecurityManager();
-    }
-
-    public static void arraycopy(Object src, int srcPos, Object dest, int destPos, int length) {
-        System.arraycopy(src, srcPos, dest, destPos, length);
-    }
-
-    public static void setProperties(Properties props) {
-        System.setProperties(props);
+        return null;
     }
 
     public static Properties getProperties() {
-        return System.getProperties();
+        Properties copy = new Properties();
+        copy.putAll(System.getProperties());
+        return copy;
     }
 
-    public static void setProperty(String key, String value) {
-        System.setProperty(key, value);
+    public static void setProperties(Properties props) {
+        throw denied("setProperties");
     }
+
+    public static String setProperty(String key, String value) {
+        throw denied("setProperty");
+    }
+
+    public static String clearProperty(String key) {
+        throw denied("clearProperty");
+    }
+
+    public static String getenv(String name) {
+        return null;
+    }
+
+    public static Map<String, String> getenv() {
+        return Map.of();
+    }
+
+    public static void load(String filename) {
+        throw denied("load");
+    }
+
+    public static void loadLibrary(String libname) {
+        throw denied("loadLibrary");
+    }
+
+    public static Console console() {
+        return null;
+    }
+
+    public static Channel inheritedChannel() throws IOException {
+        return null;
+    }
+
+    @Deprecated
+    public static void runFinalization() {
+        // Finalization is deprecated for removal. Nothing to do.
+    }
+
+    // ---- Methods that call System directly ----
 
     public static String getProperty(String key) {
         return System.getProperty(key);
@@ -96,43 +130,17 @@ public final class HackSystem {
         return System.getProperty(key, def);
     }
 
-    public static String clearProperty(String key) {
-        return System.clearProperty(key);
+    public static System.Logger getLogger(String name) {
+        return System.getLogger(name);
     }
 
-    public static String getenv(String name) {
-        return System.getenv(name);
+    public static System.Logger getLogger(String name, ResourceBundle bundle) {
+        return System.getLogger(name, bundle);
     }
 
-    public static Map<String, String> getenv() {
-        return System.getenv();
+    public static void arraycopy(Object src, int srcPos, Object dest, int destPos, int length) {
+        System.arraycopy(src, srcPos, dest, destPos, length);
     }
-
-    public static void exit(int status) {
-        System.exit(status);
-    }
-
-    public static void gc() {
-        System.gc();
-    }
-
-    public static void runFinalization() {
-        System.runFinalization();
-    }
-
-
-    public static void load(String filename) {
-        System.load(filename);
-    }
-
-    public static void loadLibrary(String libname) {
-        System.loadLibrary(libname);
-    }
-
-    public static Channel inheritedChannel() throws IOException {
-        return System.inheritedChannel();
-    }
-
 
     public static long currentTimeMillis() {
         return System.currentTimeMillis();
@@ -154,4 +162,64 @@ public final class HackSystem {
         return System.mapLibraryName(libname);
     }
 
+    public static void gc() {
+        System.gc();
+    }
+
+    private static SecurityException denied(String method) {
+        return new SecurityException("System." + method + " is not allowed in in-process mode");
+    }
+
+    /** Writes to the current run, or to the server console when no run is bound to the thread. */
+    private static final class RoutedOutputStream extends OutputStream {
+
+        private final boolean error;
+
+        RoutedOutputStream(boolean error) {
+            this.error = error;
+        }
+
+        @Override
+        public void write(int b) {
+            write(new byte[]{(byte) b}, 0, 1);
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) {
+            ExecutionContext context = ExecutionContext.current();
+            if (context == null) {
+                (error ? SERVER_ERR : SERVER_OUT).write(b, off, len);
+                return;
+            }
+            if (context.closed()) {
+                throw UserCodeStop.cancelled();
+            }
+            BoundedOutput target = error ? context.stderr : context.stdout;
+            if (!target.write(b, off, len)) {
+                throw UserCodeStop.outputLimit();
+            }
+        }
+    }
+
+    /** Reads the stdin of the current run. */
+    private static final class RoutedInputStream extends InputStream {
+
+        @Override
+        public int read() throws IOException {
+            ExecutionContext context = ExecutionContext.current();
+            return context == null ? -1 : context.stdin.read();
+        }
+
+        @Override
+        public int read(byte[] b, int off, int len) throws IOException {
+            ExecutionContext context = ExecutionContext.current();
+            return context == null ? -1 : context.stdin.read(b, off, len);
+        }
+
+        @Override
+        public int available() throws IOException {
+            ExecutionContext context = ExecutionContext.current();
+            return context == null ? 0 : context.stdin.available();
+        }
+    }
 }

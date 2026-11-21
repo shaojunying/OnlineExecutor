@@ -1,56 +1,54 @@
-package com.shao.execute;
+package io.github.shaojunying.onlineexecutor.runner.inprocess;
 
+import java.nio.charset.StandardCharsets;
 
 /**
+ * Helpers for reading and writing big-endian numbers and strings in a byte array.
  *
- * 字节数组处理的工具类
- *
- * @author shaojunying
+ * <p>Strings use UTF-8. A class file stores strings in modified UTF-8. The two encodings
+ * are the same for the ASCII class names this project rewrites.
  */
-public class ByteUtils {
+public final class ByteUtils {
 
+    private ByteUtils() {
+    }
+
+    /** Reads an unsigned big-endian number of {@code len} bytes. */
     public static int bytes2Int(byte[] bytes, int start, int len) {
         int num = 0;
-        int end = start + len;
-        for (int i = start; i < end; i++) {
-            int n = ((int) bytes[i]) & 0xff;
-            n <<= (-- len) * 8;
-            num += n;
+        for (int i = start; i < start + len; i++) {
+            num = (num << 8) | (bytes[i] & 0xff);
         }
         return num;
     }
 
-    public static byte [] int2Bytes(int value, int len) {
+    /** Writes {@code value} as a big-endian number of {@code len} bytes. */
+    public static byte[] int2Bytes(int value, int len) {
         byte[] bytes = new byte[len];
-        for (int i = 0; i < bytes.length; i++) {
+        for (int i = 0; i < len; i++) {
             bytes[len - 1 - i] = (byte) ((value >> 8 * i) & 0xff);
         }
         return bytes;
     }
 
     public static String bytes2String(byte[] bytes, int start, int len) {
-        return new String(bytes, start, len);
+        return new String(bytes, start, len, StandardCharsets.UTF_8);
     }
 
     public static byte[] string2Bytes(String value) {
-        return value.getBytes();
+        return value.getBytes(StandardCharsets.UTF_8);
     }
 
     /**
-     * 将originalBytes[start, start + len)之间的字符替换为replaceBytes[0, replaceBytes.length)
-     * 按照如下方式拼接一个长度为originalBytes.length - len + replaceBytes.length的新字符串：
-     * originalBytes[0, start),
-     * replaceBytes[0, replaceBytes.length),
-     * originalBytes[start+len, originalBytes.length - start - len)
+     * Returns a new array where {@code originalBytes[start, start + len)} is replaced by
+     * {@code replaceBytes}. The input array is not changed.
      */
     public static byte[] byteReplace(byte[] originalBytes, int start, int len, byte[] replaceBytes) {
         byte[] bytes = new byte[originalBytes.length - len + replaceBytes.length];
         System.arraycopy(originalBytes, 0, bytes, 0, start);
         System.arraycopy(replaceBytes, 0, bytes, start, replaceBytes.length);
-        System.arraycopy(originalBytes, start + len, bytes, replaceBytes.length + start
-                , originalBytes.length - start - len);
+        System.arraycopy(originalBytes, start + len, bytes, start + replaceBytes.length,
+                originalBytes.length - start - len);
         return bytes;
     }
-
-
 }

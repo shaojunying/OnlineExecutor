@@ -1,25 +1,54 @@
-package com.shao.execute;
+package io.github.shaojunying.onlineexecutor.runner.inprocess;
+
+import java.util.Map;
 
 /**
- * 自定义类加载器
+ * Loads the classes of one user program from memory.
  *
- * 暴露defineClass方法。
- * 每次获取到最新的Class文件内容，
- * 调用defineClass方法，即可得到最新的Class对象
+ * <p>A new loader is created for every run, so the same class name can be loaded again
+ * with new content.
  *
- * @author shao
+ * <p>Class lookup:
+ * <ul>
+ *   <li>{@link HackSystem} and its helpers come from the loader that loaded this class.
+ *       In a Spring Boot fat jar that is the Boot class loader, not the system class loader.</li>
+ *   <li>User classes come from the compiled bytes, after {@link ClassModifier} rewrites
+ *       {@code java/lang/System} to {@link HackSystem}.</li>
+ *   <li>Everything else comes from the platform class loader, so user code sees the JDK
+ *       but not the server's own classes or libraries.</li>
+ * </ul>
  */
-public class MyClassLoader extends ClassLoader {
+public class ByteArrayClassLoader extends ClassLoader {
 
-    public MyClassLoader() {
-        // 使用当前线程的类加载器作为父类加载器
-        // 使用MyClassLoader加载待执行的类之后，还需要使用AppClassLoader加载HackSystem，
-        // 所以需要将MyClassLoader的parent指定为AppClassLoader
-        // super(Thread.currentThread().getContextClassLoader());
+    static final String SYSTEM_INTERNAL_NAME = "java/lang/System";
+    static final String HACK_SYSTEM_INTERNAL_NAME = HackSystem.class.getName().replace('.', '/');
+
+    private static final String HACK_SYSTEM_NAME = HackSystem.class.getName();
+    private static final ClassLoader SERVER_LOADER = HackSystem.class.getClassLoader();
+
+    private final Map<String, byte[]> classes;
+
+    public ByteArrayClassLoader(Map<String, byte[]> classes) {
+        super("user-code", ClassLoader.getPlatformClassLoader());
+        this.classes = classes;
     }
 
-    public Class<?> loadByte(byte[] classByte) {
-        return defineClass(null, classByte, 0, classByte.length);
+    @Override
+    protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+        if (name.equals(HACK_SYSTEM_NAME) || name.startsWith(HACK_SYSTEM_NAME + "$")) {
+            return SERVER_LOADER.loadClass(name);
+        }
+        return super.loadClass(name, resolve);
     }
 
+    @Override
+    protected Class<?> findClass(String name) throws ClassNotFoundException {
+        byte[] original = classes.get(name);
+        if (original == null) {
+            throw new ClassNotFoundException(name);
+        }
+        byte[] rewritten = new ClassModifier(original)
+                .modifyUTF8Constant(SYSTEM_INTERNAL_NAME, HACK_SYSTEM_INTERNAL_NAME);
+        return defineClass(name, rewritten, 0, rewritten.length);
+    }
 }

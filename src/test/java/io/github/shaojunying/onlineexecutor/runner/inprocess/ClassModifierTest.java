@@ -1,6 +1,5 @@
-package com.shao.execute;
+package io.github.shaojunying.onlineexecutor.runner.inprocess;
 
-import com.shao.execute.ClassModifier;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -64,5 +63,82 @@ class ClassModifierTest {
                 (byte) 0x74,
         };
         assertArrayEquals(expectedBytes, bytes);
+    }
+
+    /** The length field must hold the byte length, not the character count. */
+    @Test
+    void writesByteLengthForMultiByteString() {
+        byte[] result = new ClassModifier(bytes).modifyUTF8Constant("org/fenixsoft/clazz/TestClass", "测试");
+
+        assertEquals(6, ByteUtils.bytes2Int(result, 14, 2));
+        assertEquals("测试", ByteUtils.bytes2String(result, 16, 6));
+        assertEquals(16 + 6, result.length);
+    }
+
+    @Test
+    void rejectsBytesThatAreNotAClassFile() {
+        assertThrows(IllegalArgumentException.class, () -> new ClassModifier(new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}));
+    }
+
+    /** Lambdas and string concatenation add MethodHandle (15) and InvokeDynamic (18) constants. */
+    @Test
+    void rewritesClassWithInvokeDynamicConstants() {
+        byte[] original = compile("""
+                public class Modern {
+                    public static void main(String[] args) {
+                        Runnable r = () -> {};
+                        String s = "n=" + args.length;
+                        System.out.println(s);
+                    }
+                }
+                """, "Modern");
+
+        byte[] rewritten = new ClassModifier(original).modifyUTF8Constant("java/lang/System", "demo/Hack");
+
+        assertTrue(containsUtf8Entry(original, "java/lang/System"));
+        assertFalse(containsUtf8Entry(rewritten, "java/lang/System"));
+        assertTrue(containsUtf8Entry(rewritten, "demo/Hack"));
+    }
+
+    /** Long and Double use two pool indexes. Walking the pool must not run past its end. */
+    @Test
+    void walksWholePoolWithLongAndDoubleConstants() {
+        byte[] original = compile("""
+                public class Numbers {
+                    static long big = 123_456_789_012L;
+                    static double pi = 3.14159;
+                    static long other = 987_654_321_098L;
+                }
+                """, "Numbers");
+
+        byte[] result = new ClassModifier(original).modifyUTF8Constant("not/in/Pool", "x");
+
+        assertSame(original, result);
+    }
+
+    private static byte[] compile(String source, String className) {
+        var result = new io.github.shaojunying.onlineexecutor.compile.InMemoryJavaCompiler().compile(source);
+        var success = assertInstanceOf(io.github.shaojunying.onlineexecutor.compile.CompilationResult.Success.class, result);
+        return success.program().classes().get(className);
+    }
+
+    /** True when the class file has a CONSTANT_Utf8 entry with exactly this value. */
+    private static boolean containsUtf8Entry(byte[] classFile, String value) {
+        byte[] text = ByteUtils.string2Bytes(value);
+        byte[] entry = new byte[3 + text.length];
+        entry[0] = 1;
+        entry[1] = (byte) (text.length >> 8);
+        entry[2] = (byte) text.length;
+        System.arraycopy(text, 0, entry, 3, text.length);
+        outer:
+        for (int i = 0; i <= classFile.length - entry.length; i++) {
+            for (int j = 0; j < entry.length; j++) {
+                if (classFile[i + j] != entry[j]) {
+                    continue outer;
+                }
+            }
+            return true;
+        }
+        return false;
     }
 }
