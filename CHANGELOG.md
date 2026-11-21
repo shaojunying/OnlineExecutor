@@ -2,7 +2,7 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。日期取自 git 提交记录。
 
-## [1.0.0] - 未发布
+## [1.0.0] - 2026-11-21
 
 ### 新增
 
@@ -67,3 +67,5 @@
 ## [0.1] - 2022-01-11
 
 - 新增：用 `URLClassLoader` 加载外部类。
+
+[1.0.0]: https://github.com/shaojunying/OnlineExecutor/releases/tag/v1.0.0

@@ -190,7 +190,7 @@ docker 模式需要调用 Docker daemon。服务直接运行在主机上时：
 2. 启动服务。
 
    ```bash
-   EXECUTOR_MODE=docker java -jar target/online-executor-1.0.0-SNAPSHOT.jar
+   EXECUTOR_MODE=docker java -jar target/online-executor-1.0.0.jar
    ```
 
 服务本身运行在容器里时，还要满足两个条件：

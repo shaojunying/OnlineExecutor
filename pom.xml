@@ -13,7 +13,7 @@
 
     <groupId>io.github.shaojunying</groupId>
     <artifactId>online-executor</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0</version>
     <name>OnlineExecutor</name>
     <description>Compile and run Java source code from the browser</description>
     <url>https://github.com/shaojunying/OnlineExecutor</url>
